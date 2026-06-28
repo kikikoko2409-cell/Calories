@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="سعرات">
+<meta name="application-name" content="سعرات">
+<meta name="theme-color" content="#f97316">
+<meta name="msapplication-TileColor" content="#0f1117">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
+<link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+<title>حاسبة السعرات اليومية</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+  :root {
+    --bg:#0f1117;--surface:#1a1d27;--card:#21263a;
+    --accent:#f97316;--accent2:#fb923c;
+    --green:#22c55e;--red:#ef4444;--yellow:#fbbf24;
+    --text:#f1f5f9;--muted:#94a3b8;--border:#2d3348;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'IBM Plex Sans Arabic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 130px;}
+
+  /* HEADER */
+  .header{background:linear-gradient(135deg,#1a1d27,#0f1117);border-bottom:1px solid var(--border);padding:16px 16px 14px;position:sticky;top:0;z-index:100;}
+  .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .app-title{font-size:18px;font-weight:700;color:var(--accent);}
+  .date-display{font-size:12px;color:var(--muted);background:var(--card);padding:4px 12px;border-radius:20px;border:1px solid var(--border);}
+  .progress-section{display:flex;align-items:center;gap:16px;}
+  .ring-container{position:relative;width:72px;height:72px;flex-shrink:0;}
+  .ring-svg{transform:rotate(-90deg);width:72px;height:72px;}
+  .ring-bg{fill:none;stroke:var(--border);stroke-width:6;}
+  .ring-fill{fill:none;stroke:var(--accent);stroke-width:6;stroke-linecap:round;stroke-dasharray:188.5;stroke-dashoffset:188.5;transition:stroke-dashoffset .6s ease,stroke .3s;}
+  .ring-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;line-height:1;}
+  .ring-cal{font-size:14px;font-weight:700;color:var(--accent);}
+  .ring-label{font-size:9px;color:var(--muted);margin-top:2px;}
+  .macros-row{display:flex;gap:8px;flex:1;}
+  .macro-item{flex:1;background:var(--card);border-radius:10px;padding:8px;border:1px solid var(--border);}
+  .macro-label{font-size:10px;color:var(--muted);margin-bottom:2px;}
+  .macro-val{font-size:14px;font-weight:700;}
+  .macro-val.p{color:#60a5fa;} .macro-val.c{color:#a78bfa;} .macro-val.f{color:#fbbf24;}
+  .cal-display{margin-top:12px;background:var(--card);border-radius:8px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);}
+  .cal-label{font-size:12px;color:var(--muted);}
+  .cal-total{font-size:20px;font-weight:700;color:var(--accent);}
+  .cal-over{color:var(--red);}
+
+  /* DAY NAV */
+  .day-nav{display:flex;gap:8px;padding:12px 16px 0;overflow-x:auto;scrollbar-width:none;}
+  .day-nav::-webkit-scrollbar{display:none;}
+  .day-btn{flex-shrink:0;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;}
+  .day-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .day-btn:hover:not(.active){border-color:var(--accent);color:var(--text);}
+
+  /* TABS */
+  .tabs{display:flex;padding:12px 16px 0;}
+  .tab-btn{flex:1;background:var(--card);border:1px solid var(--border);padding:9px;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer;transition:all .2s;}
+  .tab-btn:first-child{border-radius:10px 0 0 10px;}
+  .tab-btn:last-child{border-radius:0 10px 10px 0;}
+  .tab-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .tab-content{display:none;} .tab-content.active{display:block;}
+
+  /* MEALS */
+  .meals-section{padding:14px 16px;}
+  .meal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden;}
+  .meal-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;cursor:pointer;user-select:none;}
+  .meal-name-row{display:flex;align-items:center;gap:8px;}
+  .meal-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .meal-icon.breakfast{background:rgba(251,191,36,.15);}
+  .meal-icon.lunch{background:rgba(249,115,22,.15);}
+  .meal-icon.dinner{background:rgba(96,165,250,.15);}
+  .meal-icon.snack{background:rgba(34,197,94,.15);}
+  .meal-name{font-size:14px;font-weight:600;}
+  .meal-cal{font-size:14px;font-weight:700;color:var(--accent);}
+  .meal-items{padding:0 14px 12px;display:none;}
+  .meal-items.open{display:block;}
+
+  /* FOOD ITEM */
+  .food-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+  .food-item:last-child{border-bottom:none;}
+  .food-thumb{width:36px;height:36px;border-radius:8px;object-fit:cover;margin-left:8px;flex-shrink:0;background:var(--border);}
+  .food-thumb-placeholder{width:36px;height:36px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;margin-left:8px;flex-shrink:0;}
+  .food-name{font-size:13px;color:var(--text);}
+  .food-detail{font-size:11px;color:var(--muted);margin-top:2px;}
+  .food-cal-badge{font-size:12px;font-weight:600;color:var(--accent);background:rgba(249,115,22,.1);padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .delete-btn{background:none;border:none;color:var(--red);cursor:pointer;padding:4px;margin-right:6px;opacity:.6;transition:opacity .2s;font-size:14px;}
+  .delete-btn:hover{opacity:1;}
+  .add-food-btn{display:flex;align-items:center;gap:6px;background:none;border:1px dashed var(--border);border-radius:8px;padding:7px 12px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;margin-top:8px;font-family:inherit;transition:all .2s;}
+  .add-food-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* DB SEARCH */
+  .db-search-wrap{padding:12px 16px 0;}
+  .db-search-box{display:flex;gap:8px;}
+  .db-search-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;direction:rtl;}
+  .db-search-input:focus{border-color:var(--accent);}
+  .db-search-input::placeholder{color:var(--muted);}
+  .db-search-btn{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .2s;}
+  .db-search-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .db-results{margin-top:8px;background:var(--card);border:1px solid var(--border);border-radius:12px;max-height:220px;overflow-y:auto;display:none;}
+  .db-results.open{display:block;}
+  .db-result-item{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+  .db-result-item:last-child{border-bottom:none;}
+  .db-result-item:hover{background:var(--surface);}
+  .db-result-name{font-size:13px;}
+  .db-result-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .db-result-cal{font-size:13px;font-weight:700;color:var(--accent);}
+  .db-cat-badge{font-size:10px;background:rgba(249,115,22,.1);color:var(--accent);padding:2px 7px;border-radius:10px;margin-top:3px;display:inline-block;}
+
+  /* PORTION MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:none;align-items:flex-end;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--surface);border-radius:20px 20px 0 0;padding:20px;width:100%;border-top:1px solid var(--border);}
+  .modal-title{font-size:15px;font-weight:700;margin-bottom:4px;}
+  .modal-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
+  .modal-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+  .modal-input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;text-align:center;}
+  .modal-input:focus{border-color:var(--accent);}
+  .modal-unit{font-size:13px;color:var(--muted);}
+  .modal-preview{background:var(--card);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;}
+  .modal-preview-item{text-align:center;}
+  .modal-preview-val{font-size:16px;font-weight:700;}
+  .modal-preview-lbl{font-size:10px;color:var(--muted);}
+  .modal-img-section{margin-bottom:14px;}
+  .modal-img-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+  .img-upload-btn{display:flex;align-items:center;gap:8px;background:var(--card);border:1px dashed var(--border);border-radius:10px;padding:10px 14px;color:var(--muted);font-size:13px;cursor:pointer;transition:all .2s;width:100%;}
+  .img-upload-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .img-preview{width:100%;height:120px;object-fit:cover;border-radius:10px;margin-top:8px;display:none;}
+  .modal-add-btn{width:100%;background:var(--accent);border:none;border-radius:12px;padding:13px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .2s;}
+  .modal-add-btn:hover{background:var(--accent2);}
+  .modal-close{position:absolute;top:16px;left:16px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;}
+
+  /* SUMMARY */
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;}
+  .summary-title{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;}
+  .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .summary-item{background:var(--surface);border-radius:10px;padding:10px;text-align:center;}
+  .summary-item-val{font-size:18px;font-weight:700;color:var(--accent);}
+  .summary-item-label{font-size:11px;color:var(--muted);margin-top:2px;}
+  .full-width{grid-column:1/-1;}
+  .full-width .summary-item-val{font-size:24px;}
+
+  /* HISTORY */
+  .history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+  .history-item:last-child{border-bottom:none;}
+  .history-day{font-size:13px;font-weight:500;}
+  .history-bar{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0;}
+  .history-bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .4s ease;}
+  .history-cal{font-size:14px;font-weight:700;}
+  .chip{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
+  .chip.ok{background:rgba(34,197,94,.15);color:var(--green);}
+  .chip.over{background:rgba(239,68,68,.15);color:var(--red);}
+  .chip.low{background:rgba(96,165,250,.15);color:#60a5fa;}
+
+  /* EMPTY */
+  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+  .empty-icon{font-size:40px;margin-bottom:12px;}
+  .empty-text{font-size:14px;line-height:1.6;}
+
+  /* AI INPUT */
+  .ai-input-section{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 16px 14px;z-index:200;}
+  .ai-input-row{display:flex;gap:8px;align-items:flex-end;}
+  .ai-textarea{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:inherit;resize:none;min-height:44px;max-height:100px;outline:none;line-height:1.4;transition:border-color .2s;direction:rtl;}
+  .ai-textarea:focus{border-color:var(--accent);}
+  .ai-textarea::placeholder{color:var(--muted);}
+  .meal-select{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 8px;color:var(--text);font-size:12px;font-family:inherit;outline:none;cursor:pointer;direction:rtl;}
+  .send-btn{width:44px;height:44px;background:var(--accent);border:none;border-radius:12px;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;}
+  .send-btn:hover{background:var(--accent2);}
+  .send-btn:disabled{background:var(--border);cursor:not-allowed;}
+  .loading-indicator{display:none;align-items:center;gap:8px;padding:6px 0;color:var(--muted);font-size:13px;}
+  .loading-indicator.visible{display:flex;}
+  .dot-pulse{display:flex;gap:4px;}
+  .dot-pulse span{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 1.2s ease-in-out infinite;}
+  .dot-pulse span:nth-child(2){animation-delay:.2s;}
+  .dot-pulse span:nth-child(3){animation-delay:.4s;}
+  @keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
+  /* TOAST */
+  .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--green);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;transition:transform .3s ease;z-index:999;}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--red);}
+
+  /* SECTION DIVIDER */
+  .section-divider{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:10px 16px 0;}
+</style>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered'))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+</script>
+</head>
+<body>
+
+  <!-- PWA Install Banner -->
+  <div id="installBanner" style="display:none;position:fixed;bottom:140px;left:16px;right:16px;background:#1a1d27;border:1px solid #f97316;border-radius:14px;padding:14px;z-index:300;box-shadow:0 4px 20px rgba(0,0,0,.5);">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#f1f5f9;margin-bottom:2px;">📲 ثبّت التطبيق</div>
+        <div style="font-size:12px;color:#94a3b8;">أضفه للشاشة الرئيسية ويشتغل بدون إنترنت</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="dismissInstall()" style="background:none;border:1px solid #2d3348;border-radius:8px;padding:6px 12px;color:#94a3b8;cursor:pointer;font-family:inherit;font-size:12px;">لاحقاً</button>
+        <button onclick="installPWA()" style="background:#f97316;border:none;border-radius:8px;padding:6px 12px;color:#fff;cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;">تثبيت</button>
+      </div>
+    </div>
+  </div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="app-title">🔥 حاسبة السعرات</div>
+    <div class="date-display" id="currentDate"></div>
+  </div>
+  <div class="progress-section">
+    <div class="ring-container">
+      <svg class="ring-svg" viewBox="0 0 72 72">
+        <circle class="ring-bg" cx="36" cy="36" r="30"/>
+        <circle class="ring-fill" id="ringFill" cx="36" cy="36" r="30"/>
+      </svg>
+      <div class="ring-text">
+        <div class="ring-cal" id="ringCal">0</div>
+        <div class="ring-label">سعرة</div>
+      </div>
+    </div>
+    <div class="macros-row">
+      <div class="macro-item"><div class="macro-label">بروتين</div><div class="macro-val p" id="macroP">0غ</div></div>
+      <div class="macro-item"><div class="macro-label">كارب</div><div class="macro-val c" id="macroC">0غ</div></div>
+      <div class="macro-item"><div class="macro-label">دهون</div><div class="macro-val f" id="macroF">0غ</div></div>
+    </div>
+  </div>
+  <div class="cal-display">
+    <div class="cal-label">إجمالي اليوم</div>
+    <div class="cal-total" id="calTotal">0 سعرة</div>
+  </div>
+</div>
+
+<!-- DAY NAV -->
+<div class="day-nav" id="dayNav"></div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('today')">اليوم</button>
+  <button class="tab-btn" onclick="switchTab('db')">قاعدة البيانات</button>
+  <button class="tab-btn" onclick="switchTab('history')">السجل</button>
+</div>
+
+<!-- TODAY TAB -->
+<div class="tab-content active" id="tabToday">
+  <div class="section-divider">البحث السريع في قاعدة البيانات</div>
+  <div class="db-search-wrap">
+    <div class="db-search-box">
+      <input class="db-search-input" id="quickSearch" placeholder="ابحث عن طعام... مثال: تونة، أرز، بيضة" oninput="quickSearchDB(this.value)">
+      <button class="db-search-btn" onclick="clearQuickSearch()">مسح</button>
+    </div>
+    <div class="db-results" id="quickResults"></div>
+  </div>
+  <div class="meals-section" id="mealsContainer"></div>
+</div>
+
+<!-- DB TAB -->
+<div class="tab-content" id="tabDb">
+  <div class="meals-section">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;">
+      <div style="padding:12px 14px;border-bottom:1px solid var(--border);">
+        <input class="db-search-input" id="dbFullSearch" placeholder="ابحث في قاعدة البيانات الكاملة..." oninput="fullSearchDB(this.value)" style="width:100%;">
+      </div>
+      <div style="display:flex;gap:6px;padding:10px 14px;overflow-x:auto;scrollbar-width:none;" id="catFilters"></div>
+      <div id="dbFullResults" style="max-height:500px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="tab-content" id="tabHistory">
+  <div class="meals-section">
+    <div class="summary-card" id="historySummary">
+      <div class="summary-title">ملخص الأيام (بدون حد أقصى)</div>
+      <div id="historyList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PORTION MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" style="position:relative;">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modalFoodName">-</div>
+    <div class="modal-sub" id="modalFoodBase">-</div>
+    <div class="modal-row">
+      <input class="modal-input" type="number" id="portionInput" value="100" min="1" oninput="updateModalPreview()">
+      <div class="modal-unit">غرام</div>
+    </div>
+    <div class="modal-preview">
+      <div class="modal-preview-item"><div class="modal-preview-val" id="mpCal" style="color:var(--accent)">-</div><div class="modal-preview-lbl">سعرة</div></div>
+      <div class="modal-preview-item"><div class="modal-preview-val" id="mpP" style="color:#60a5fa">-</div><div class="modal-preview-lbl">بروتين</div></div>
+      <div class="modal-preview-item"><div class="modal-preview-val" id="mpC" style="color:#a78bfa">-</div><div class="modal-preview-lbl">كارب</div></div>
+      <div class="modal-preview-item"><div class="modal-preview-val" id="mpF" style="color:#fbbf24">-</div><div class="modal-preview-lbl">دهون</div></div>
+    </div>
+    <div class="modal-img-section">
+      <div class="modal-img-label">📷 إضافة صورة (اختياري)</div>
+      <label class="img-upload-btn" for="imgUpload">📁 اختر صورة من الجهاز</label>
+      <input type="file" id="imgUpload" accept="image/*" style="display:none" onchange="handleImgUpload(event)">
+      <img id="imgPreview" class="img-preview" alt="صورة الوجبة">
+    </div>
+    <div style="margin-bottom:12px;">
+      <div class="modal-img-label" style="margin-bottom:6px;">أضف إلى وجبة:</div>
+      <select class="meal-select" id="modalMealSelect" style="width:100%;padding:10px 14px;">
+        <option value="breakfast">🌅 فطور</option>
+        <option value="lunch">☀️ غداء</option>
+        <option value="dinner">🌙 عشاء</option>
+        <option value="snack">🍎 سناك</option>
+      </select>
+    </div>
+    <button class="modal-add-btn" onclick="addFromModal()">✅ إضافة للوجبة</button>
+  </div>
+</div>
+
+<!-- AI INPUT -->
+<div class="ai-input-section">
+  <div class="loading-indicator" id="loadingIndicator">
+    <div class="dot-pulse"><span></span><span></span><span></span></div>
+    جاري تحليل الوجبة بالذكاء الاصطناعي...
+  </div>
+  <div class="ai-input-row">
+    <select class="meal-select" id="mealSelect">
+      <option value="breakfast">🌅 فطور</option>
+      <option value="lunch">☀️ غداء</option>
+      <option value="dinner">🌙 عشاء</option>
+      <option value="snack">🍎 سناك</option>
+    </select>
+    <textarea class="ai-textarea" id="foodInput" placeholder="اكتب ما أكلته... مثال: صدر دجاج 200غ مع أرز 150غ" rows="1"></textarea>
+    <button class="send-btn" id="sendBtn" onclick="analyzeFood()">➤</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================
+// FOOD DATABASE (قاعدة البيانات)
+// ============================
+const FOOD_DB = [
+  // === لحوم ودواجن ===
+  {id:1,name:"صدر دجاج مشوي",cat:"دواجن",cal100:165,p:31,c:0,f:3.6,emoji:"🍗"},
+  {id:2,name:"فخذ دجاج مشوي",cat:"دواجن",cal100:209,p:26,c:0,f:11,emoji:"🍗"},
+  {id:3,name:"دجاج مقلي",cat:"دواجن",cal100:246,p:22,c:8,f:14,emoji:"🍗"},
+  {id:4,name:"لحم بقر مفروم (70% قليل الدهن)",cat:"لحوم",cal100:215,p:26,c:0,f:12,emoji:"🥩"},
+  {id:5,name:"لحم بقر مشوي",cat:"لحوم",cal100:250,p:26,c:0,f:15,emoji:"🥩"},
+  {id:6,name:"لحم غنم",cat:"لحوم",cal100:294,p:25,c:0,f:21,emoji:"🥩"},
+  {id:7,name:"كبدة دجاج",cat:"دواجن",cal100:119,p:17,c:1,f:5,emoji:"🍗"},
+  {id:8,name:"سجق دجاج",cat:"دواجن",cal100:280,p:14,c:3,f:24,emoji:"🌭"},
+  {id:9,name:"سجق بقر",cat:"لحوم",cal100:332,p:13,c:2,f:30,emoji:"🌭"},
+  {id:10,name:"مرتديلا دجاج",cat:"معلبات",cal100:195,p:12,c:5,f:14,emoji:"🥩"},
+  {id:11,name:"مرتديلا بقر",cat:"معلبات",cal100:290,p:12,c:3,f:25,emoji:"🥩"},
+
+  // === أسماك وبحريات ===
+  {id:20,name:"تونة معلبة (بالماء)",cat:"معلبات",cal100:116,p:25,c:0,f:1,emoji:"🐟"},
+  {id:21,name:"تونة معلبة (بالزيت)",cat:"معلبات",cal100:200,p:22,c:0,f:12,emoji:"🐟"},
+  {id:22,name:"سردين معلب",cat:"معلبات",cal100:208,p:25,c:0,f:11,emoji:"🐟"},
+  {id:23,name:"سلمون مشوي",cat:"أسماك",cal100:206,p:20,c:0,f:13,emoji:"🐟"},
+  {id:24,name:"سلمون معلب",cat:"معلبات",cal100:142,p:20,c:0,f:6,emoji:"🐟"},
+  {id:25,name:"ثروت مشوي",cat:"أسماك",cal100:168,p:26,c:0,f:6,emoji:"🐟"},
+  {id:26,name:"روبيان مطبوخ",cat:"أسماك",cal100:99,p:21,c:0,f:1,emoji:"🦐"},
+  {id:27,name:"ماكريل معلب",cat:"معلبات",cal100:189,p:19,c:0,f:12,emoji:"🐟"},
+
+  // === بيض ومنتجات الألبان ===
+  {id:30,name:"بيضة كاملة مسلوقة",cat:"بيض وألبان",cal100:155,p:13,c:1.1,f:11,emoji:"🥚"},
+  {id:31,name:"بياض البيض",cat:"بيض وألبان",cal100:52,p:11,c:0.7,f:0.2,emoji:"🥚"},
+  {id:32,name:"حليب كامل الدسم",cat:"بيض وألبان",cal100:61,p:3.2,c:4.8,f:3.3,emoji:"🥛"},
+  {id:33,name:"حليب خالي الدسم",cat:"بيض وألبان",cal100:34,p:3.4,c:5,f:0.1,emoji:"🥛"},
+  {id:34,name:"لبن (زبادي) كامل",cat:"بيض وألبان",cal100:61,p:3.5,c:4.7,f:3.3,emoji:"🍶"},
+  {id:35,name:"لبن خالي الدسم",cat:"بيض وألبان",cal100:56,p:5.7,c:8.7,f:0.4,emoji:"🍶"},
+  {id:36,name:"جبن قريش",cat:"بيض وألبان",cal100:98,p:11,c:3.4,f:4.3,emoji:"🧀"},
+  {id:37,name:"جبن شيدر",cat:"بيض وألبان",cal100:402,p:25,c:1.3,f:33,emoji:"🧀"},
+  {id:38,name:"جبن موزاريلا",cat:"بيض وألبان",cal100:280,p:28,c:2.2,f:17,emoji:"🧀"},
+  {id:39,name:"جبن فيتا",cat:"بيض وألبان",cal100:264,p:14,c:4,f:21,emoji:"🧀"},
+  {id:40,name:"زبدة",cat:"دهون وزيوت",cal100:717,p:0.9,c:0.1,f:81,emoji:"🧈"},
+  {id:41,name:"قشطة",cat:"بيض وألبان",cal100:340,p:2.1,c:3.7,f:36,emoji:"🍶"},
+
+  // === حبوب وكربوهيدرات ===
+  {id:50,name:"أرز أبيض مطبوخ",cat:"حبوب",cal100:130,p:2.7,c:28,f:0.3,emoji:"🍚"},
+  {id:51,name:"أرز بني مطبوخ",cat:"حبوب",cal100:112,p:2.3,c:24,f:0.9,emoji:"🍚"},
+  {id:52,name:"خبز أبيض",cat:"حبوب",cal100:265,p:9,c:49,f:3.2,emoji:"🍞"},
+  {id:53,name:"خبز أسمر",cat:"حبوب",cal100:247,p:9,c:47,f:3.2,emoji:"🍞"},
+  {id:54,name:"باستا مطبوخة",cat:"حبوب",cal100:131,p:5,c:25,f:1.1,emoji:"🍝"},
+  {id:55,name:"كسكس مطبوخ",cat:"حبوب",cal100:112,p:3.8,c:23,f:0.2,emoji:"🫙"},
+  {id:56,name:"شوفان نيء",cat:"حبوب",cal100:389,p:17,c:66,f:7,emoji:"🥣"},
+  {id:57,name:"شوفان مطبوخ بالماء",cat:"حبوب",cal100:71,p:2.5,c:12,f:1.4,emoji:"🥣"},
+  {id:58,name:"دقيق قمح",cat:"حبوب",cal100:364,p:10,c:76,f:1,emoji:"🌾"},
+  {id:59,name:"عيش شمس (خبز رقيق)",cat:"حبوب",cal100:290,p:10,c:57,f:3,emoji:"🫓"},
+
+  // === بقوليات ===
+  {id:60,name:"عدس مطبوخ",cat:"بقوليات",cal100:116,p:9,c:20,f:0.4,emoji:"🫘"},
+  {id:61,name:"حمص مطبوخ",cat:"بقوليات",cal100:164,p:9,c:27,f:2.6,emoji:"🫘"},
+  {id:62,name:"فول مدمس",cat:"بقوليات",cal100:110,p:8,c:18,f:0.5,emoji:"🫘"},
+  {id:63,name:"لوبيا مطبوخة",cat:"بقوليات",cal100:127,p:9,c:23,f:0.5,emoji:"🫘"},
+  {id:64,name:"حمص معلب",cat:"معلبات",cal100:139,p:7.5,c:23,f:2.1,emoji:"🫘"},
+  {id:65,name:"فاصوليا بيضاء معلبة",cat:"معلبات",cal100:139,p:9.7,c:25,f:0.5,emoji:"🫘"},
+
+  // === خضروات ===
+  {id:70,name:"بطاطس مسلوقة",cat:"خضروات",cal100:77,p:2,c:17,f:0.1,emoji:"🥔"},
+  {id:71,name:"بطاطس مقلية",cat:"خضروات",cal100:312,p:3.4,c:41,f:15,emoji:"🍟"},
+  {id:72,name:"طماطم طازجة",cat:"خضروات",cal100:18,p:0.9,c:3.9,f:0.2,emoji:"🍅"},
+  {id:73,name:"خيار طازج",cat:"خضروات",cal100:16,p:0.7,c:3.6,f:0.1,emoji:"🥒"},
+  {id:74,name:"جزر طازج",cat:"خضروات",cal100:41,p:0.9,c:10,f:0.2,emoji:"🥕"},
+  {id:75,name:"بصل",cat:"خضروات",cal100:40,p:1.1,c:9.3,f:0.1,emoji:"🧅"},
+  {id:76,name:"فلفل أخضر",cat:"خضروات",cal100:20,p:0.9,c:4.6,f:0.2,emoji:"🫑"},
+  {id:77,name:"سبانخ طازجة",cat:"خضروات",cal100:23,p:2.9,c:3.6,f:0.4,emoji:"🥬"},
+  {id:78,name:"كوسا مطبوخة",cat:"خضروات",cal100:17,p:1.2,c:3.5,f:0.3,emoji:"🫑"},
+  {id:79,name:"باذنجان مطبوخ",cat:"خضروات",cal100:35,p:0.8,c:8.6,f:0.2,emoji:"🍆"},
+  {id:80,name:"قرع (كدو) مطبوخ",cat:"خضروات",cal100:20,p:0.7,c:5,f:0.1,emoji:"🎃"},
+  {id:81,name:"ذرة معلبة",cat:"معلبات",cal100:86,p:3.3,c:19,f:1.2,emoji:"🌽"},
+  {id:82,name:"بازلاء معلبة",cat:"معلبات",cal100:81,p:5,c:14,f:0.4,emoji:"🫘"},
+  {id:83,name:"فطر طازج",cat:"خضروات",cal100:22,p:3.1,c:3.3,f:0.3,emoji:"🍄"},
+
+  // === فواكه ===
+  {id:90,name:"تفاح",cat:"فواكه",cal100:52,p:0.3,c:14,f:0.2,emoji:"🍎"},
+  {id:91,name:"موز",cat:"فواكه",cal100:89,p:1.1,c:23,f:0.3,emoji:"🍌"},
+  {id:92,name:"برتقال",cat:"فواكه",cal100:47,p:0.9,c:12,f:0.1,emoji:"🍊"},
+  {id:93,name:"عنب",cat:"فواكه",cal100:69,p:0.7,c:18,f:0.2,emoji:"🍇"},
+  {id:94,name:"بطيخ",cat:"فواكه",cal100:30,p:0.6,c:7.6,f:0.2,emoji:"🍉"},
+  {id:95,name:"تمر",cat:"فواكه",cal100:277,p:1.8,c:75,f:0.2,emoji:"🌴"},
+  {id:96,name:"تين طازج",cat:"فواكه",cal100:74,p:0.8,c:19,f:0.3,emoji:"🍑"},
+  {id:97,name:"مشمش طازج",cat:"فواكه",cal100:48,p:1.4,c:11,f:0.4,emoji:"🍑"},
+  {id:98,name:"فراولة",cat:"فواكه",cal100:32,p:0.7,c:7.7,f:0.3,emoji:"🍓"},
+  {id:99,name:"أناناس",cat:"فواكه",cal100:50,p:0.5,c:13,f:0.1,emoji:"🍍"},
+
+  // === مكسرات وزيوت ===
+  {id:100,name:"لوز",cat:"مكسرات",cal100:579,p:21,c:22,f:50,emoji:"🌰"},
+  {id:101,name:"جوز",cat:"مكسرات",cal100:654,p:15,c:14,f:65,emoji:"🌰"},
+  {id:102,name:"فول سوداني",cat:"مكسرات",cal100:567,p:26,c:16,f:49,emoji:"🥜"},
+  {id:103,name:"زبدة فول سوداني",cat:"مكسرات",cal100:588,p:25,c:20,f:50,emoji:"🥜"},
+  {id:104,name:"كاجو",cat:"مكسرات",cal100:553,p:18,c:30,f:44,emoji:"🌰"},
+  {id:105,name:"بذور الشيا",cat:"مكسرات",cal100:486,p:17,c:42,f:31,emoji:"🌱"},
+  {id:106,name:"زيت زيتون",cat:"دهون وزيوت",cal100:884,p:0,c:0,f:100,emoji:"🫙"},
+  {id:107,name:"زيت دوار الشمس",cat:"دهون وزيوت",cal100:884,p:0,c:0,f:100,emoji:"🫙"},
+
+  // === وجبات جاهزة وشائعة ===
+  {id:110,name:"بيتزا مارغريتا (شريحة)",cat:"وجبات جاهزة",cal100:266,p:11,c:33,f:10,emoji:"🍕"},
+  {id:111,name:"برغر لحم (عادي)",cat:"وجبات جاهزة",cal100:295,p:17,c:24,f:14,emoji:"🍔"},
+  {id:112,name:"شاورما دجاج",cat:"وجبات جاهزة",cal100:190,p:15,c:14,f:8,emoji:"🌯"},
+  {id:113,name:"كباب مشوي",cat:"وجبات جاهزة",cal100:220,p:20,c:2,f:14,emoji:"🍢"},
+  {id:114,name:"فلافل مقلية",cat:"وجبات جاهزة",cal100:333,p:13,c:32,f:18,emoji:"🧆"},
+  {id:115,name:"حمص بالطحينة",cat:"وجبات جاهزة",cal100:166,p:7.9,c:14,f:9.6,emoji:"🫙"},
+  {id:116,name:"كسرة (خبز مسطح)",cat:"حبوب",cal100:290,p:9,c:59,f:2,emoji:"🫓"},
+  {id:117,name:"بريك تونة (قطعة واحدة)",cat:"وجبات جاهزة",cal100:180,p:8,c:15,f:9,emoji:"🥙"},
+
+  // === مشروبات ===
+  {id:120,name:"قهوة سوداء بدون سكر",cat:"مشروبات",cal100:2,p:0.3,c:0,f:0,emoji:"☕"},
+  {id:121,name:"قهوة بالحليب (كافيه لاتيه)",cat:"مشروبات",cal100:50,p:1.7,c:5,f:1.7,emoji:"☕"},
+  {id:122,name:"شاي بدون سكر",cat:"مشروبات",cal100:1,p:0,c:0.3,f:0,emoji:"🍵"},
+  {id:123,name:"عصير برتقال طبيعي",cat:"مشروبات",cal100:45,p:0.7,c:10,f:0.2,emoji:"🍊"},
+  {id:124,name:"مشروب رياضي (غاتوريد)",cat:"مشروبات",cal100:26,p:0,c:7,f:0,emoji:"🥤"},
+  {id:125,name:"حليب سوكولا",cat:"مشروبات",cal100:83,p:3.4,c:12,f:2.3,emoji:"🍫"},
+  {id:126,name:"بروتين شيك (مسحوق بروتين بالماء)",cat:"مشروبات",cal100:100,p:20,c:3,f:1,emoji:"💪"},
+
+  // === حلويات وسكريات ===
+  {id:130,name:"شوكولا ميلك",cat:"حلويات",cal100:535,p:7.7,c:59,f:30,emoji:"🍫"},
+  {id:131,name:"شوكولا داكنة 70%",cat:"حلويات",cal100:598,p:7.8,c:46,f:43,emoji:"🍫"},
+  {id:132,name:"عسل",cat:"حلويات",cal100:304,p:0.3,c:82,f:0,emoji:"🍯"},
+  {id:133,name:"سكر أبيض",cat:"حلويات",cal100:387,p:0,c:100,f:0,emoji:"🧂"},
+  {id:134,name:"مربى",cat:"حلويات",cal100:250,p:0.5,c:63,f:0.1,emoji:"🫙"},
+  {id:135,name:"حلوى شوكولا (سنيكرز 50غ)",cat:"حلويات",cal100:488,p:8.5,c:57,f:26,emoji:"🍬"},
+  {id:136,name:"بسكويت (ماريا)",cat:"حلويات",cal100:440,p:7,c:74,f:13,emoji:"🍪"},
+  {id:137,name:"كيك اسفنجي عادي",cat:"حلويات",cal100:347,p:5,c:53,f:13,emoji:"🍰"},
+
+  // === معلبات متنوعة ===
+  {id:140,name:"طماطم معلبة مهروسة",cat:"معلبات",cal100:32,p:1.6,c:7,f:0.3,emoji:"🍅"},
+  {id:141,name:"صلصة طماطم جاهزة",cat:"معلبات",cal100:29,p:1.1,c:6.7,f:0.2,emoji:"🫙"},
+  {id:142,name:"زيتون أخضر",cat:"معلبات",cal100:145,p:1,c:3.8,f:15,emoji:"🫒"},
+  {id:143,name:"زيتون أسود",cat:"معلبات",cal100:115,p:0.8,c:6,f:11,emoji:"🫒"},
+  {id:144,name:"خرشو (قلب الخرشوف) معلب",cat:"معلبات",cal100:53,p:2.9,c:11,f:0.4,emoji:"🌿"},
+  {id:145,name:"مكعبات مرق دجاج (1 مكعب)",cat:"معلبات",cal100:20,p:1,c:2,f:0.8,emoji:"🫙"},
+  {id:146,name:"فول معلب",cat:"معلبات",cal100:110,p:6.5,c:20,f:0.5,emoji:"🫘"},
+
+  // === بهارات وصلصات ===
+  {id:150,name:"مايونيز",cat:"صلصات",cal100:680,p:1,c:0.6,f:75,emoji:"🫙"},
+  {id:151,name:"كاتشاب",cat:"صلصات",cal100:101,p:1.3,c:25,f:0.1,emoji:"🍅"},
+  {id:152,name:"خردل",cat:"صلصات",cal100:66,p:4.4,c:5.8,f:3.3,emoji:"🫙"},
+  {id:153,name:"صلصة حارة",cat:"صلصات",cal100:25,p:1,c:5,f:0.4,emoji:"🌶️"},
+  {id:154,name:"طحينة",cat:"صلصات",cal100:595,p:17,c:21,f:54,emoji:"🫙"},
+
+  // === وجبات خفيفة ===
+  {id:160,name:"شيبس (بطاطس مقلية مجففة)",cat:"وجبات خفيفة",cal100:536,p:7,c:53,f:35,emoji:"🥔"},
+  {id:161,name:"بوبكورن (بالزبدة)",cat:"وجبات خفيفة",cal100:424,p:7.5,c:51,f:22,emoji:"🍿"},
+  {id:162,name:"كرواسون",cat:"حبوب",cal100:406,p:8.2,c:46,f:21,emoji:"🥐"},
+  {id:163,name:"بسكويت شوكولا",cat:"حلويات",cal100:501,p:5.5,c:64,f:25,emoji:"🍪"},
+  {id:164,name:"تمر مجفف",cat:"فواكه",cal100:282,p:2.5,c:75,f:0.4,emoji:"🌴"},
+  {id:165,name:"مشمش مجفف",cat:"فواكه",cal100:241,p:3.4,c:63,f:0.5,emoji:"🍑"},
+  {id:166,name:"زبيب",cat:"فواكه",cal100:299,p:3.1,c:79,f:0.5,emoji:"🍇"},
+];
+
+const CATEGORIES = [...new Set(FOOD_DB.map(f => f.cat))];
+
+// ============================
+// STATE
+// ============================
+let state = { days: {}, currentDay: getTodayKey() };
+let modalFood = null;
+let uploadedImgData = null;
+let selectedCat = 'الكل';
+
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getDayLabel(key) {
+  const today = getTodayKey();
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const yKey = y.toISOString().split('T')[0];
+  if (key === today) return 'اليوم';
+  if (key === yKey) return 'أمس';
+  const d = new Date(key);
+  return ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'][d.getDay()];
+}
+
+function loadState() {
+  const s = localStorage.getItem('ctracker2');
+  if (s) state = JSON.parse(s);
+  state.currentDay = getTodayKey();
+}
+
+function saveState() {
+  localStorage.setItem('ctracker2', JSON.stringify(state));
+}
+
+function getCurrentDayData() {
+  if (!state.days[state.currentDay])
+    state.days[state.currentDay] = { meals: { breakfast:[], lunch:[], dinner:[], snack:[] } };
+  return state.days[state.currentDay];
+}
+
+function getDayTotals(key) {
+  const d = state.days[key];
+  if (!d) return {cal:0,p:0,c:0,f:0};
+  let cal=0,p=0,c=0,f=0;
+  Object.values(d.meals).forEach(items => items.forEach(i => {
+    cal+=i.calories||0; p+=i.protein||0; c+=i.carbs||0; f+=i.fat||0;
+  }));
+  return {cal:Math.round(cal),p:Math.round(p),c:Math.round(c),f:Math.round(f)};
+}
+
+// ============================
+// HEADER
+// ============================
+function updateHeader() {
+  const t = getDayTotals(state.currentDay);
+  const GOAL = 2200;
+  const pct = Math.min(t.cal / GOAL, 1);
+  const circ = 188.5;
+
+  document.getElementById('ringCal').textContent = t.cal;
+  document.getElementById('ringFill').style.strokeDashoffset = circ - pct*circ;
+
+  const ring = document.getElementById('ringFill');
+  if (t.cal > GOAL) ring.style.stroke = '#ef4444';
+  else if (pct > 0.85) ring.style.stroke = '#fbbf24';
+  else ring.style.stroke = '#f97316';
+
+  document.getElementById('macroP').textContent = t.p+'غ';
+  document.getElementById('macroC').textContent = t.c+'غ';
+  document.getElementById('macroF').textContent = t.f+'غ';
+
+  const calEl = document.getElementById('calTotal');
+  calEl.textContent = t.cal + ' سعرة';
+  calEl.className = 'cal-total' + (t.cal > GOAL ? ' cal-over' : '');
+}
+
+// ============================
+// DAY NAV
+// ============================
+function renderDayNav() {
+  const nav = document.getElementById('dayNav');
+  nav.innerHTML = '';
+  for (let i=6; i>=0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = d.toISOString().split('T')[0];
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (key===state.currentDay?' active':'');
+    btn.textContent = getDayLabel(key);
+    btn.onclick = () => { state.currentDay=key; renderAll(); };
+    nav.appendChild(btn);
+  }
+}
+
+// ============================
+// DB SEARCH
+// ============================
+function searchDB(query, cat) {
+  const q = query.trim().toLowerCase();
+  return FOOD_DB.filter(f => {
+    const matchCat = !cat || cat==='الكل' || f.cat===cat;
+    const matchQ = !q || f.name.includes(q) || f.cat.includes(q);
+    return matchCat && matchQ;
+  });
+}
+
+function quickSearchDB(val) {
+  const results = document.getElementById('quickResults');
+  if (!val.trim()) { results.classList.remove('open'); return; }
+  const found = searchDB(val, null).slice(0,8);
+  if (!found.length) {
+    results.innerHTML='<div style="padding:12px 14px;color:var(--muted);font-size:13px">لا توجد نتائج — جرّب الذكاء الاصطناعي أدناه</div>';
+  } else {
+    results.innerHTML = found.map(f => `
+      <div class="db-result-item" onclick="openModal(${f.id})">
+        <div>
+          <div class="db-result-name">${f.emoji} ${f.name}</div>
+          <div class="db-result-meta">لكل 100غ: ب${f.p}غ | ك${f.c}غ | د${f.f}غ</div>
+          <span class="db-cat-badge">${f.cat}</span>
+        </div>
+        <div class="db-result-cal">${f.cal100}<br><span style="font-size:10px;color:var(--muted)">سعرة</span></div>
+      </div>
+    `).join('');
+  }
+  results.classList.add('open');
+}
+
+function clearQuickSearch() {
+  document.getElementById('quickSearch').value='';
+  document.getElementById('quickResults').classList.remove('open');
+}
+
+function fullSearchDB(val) {
+  renderDBList(val, selectedCat);
+}
+
+function renderCatFilters() {
+  const cont = document.getElementById('catFilters');
+  const cats = ['الكل', ...CATEGORIES];
+  cont.innerHTML = cats.map(c => `
+    <button onclick="filterCat('${c}')" style="
+      flex-shrink:0;background:${c===selectedCat?'var(--accent)':'var(--card)'};
+      border:1px solid ${c===selectedCat?'var(--accent)':'var(--border)'};
+      border-radius:20px;padding:5px 12px;font-size:11px;
+      color:${c===selectedCat?'#fff':'var(--muted)'};
+      cursor:pointer;font-family:inherit;white-space:nowrap;transition:all .2s;">
+      ${c}
+    </button>
+  `).join('');
+}
+
+function filterCat(cat) {
+  selectedCat = cat;
+  renderCatFilters();
+  renderDBList(document.getElementById('dbFullSearch').value, cat);
+}
+
+function renderDBList(query, cat) {
+  const cont = document.getElementById('dbFullResults');
+  const found = searchDB(query, cat);
+  if (!found.length) {
+    cont.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">لا توجد نتائج</div>';
+    return;
+  }
+  cont.innerHTML = found.map(f => `
+    <div class="db-result-item" onclick="openModal(${f.id})">
+      <div>
+        <div class="db-result-name">${f.emoji} ${f.name}</div>
+        <div class="db-result-meta">لكل 100غ — ب:${f.p}غ | ك:${f.c}غ | د:${f.f}غ</div>
+        <span class="db-cat-badge">${f.cat}</span>
+      </div>
+      <div class="db-result-cal">${f.cal100}<br><span style="font-size:10px;color:var(--muted)">سعرة/100غ</span></div>
+    </div>
+  `).join('');
+}
+
+// ============================
+// MODAL
+// ============================
+function openModal(foodId) {
+  modalFood = FOOD_DB.find(f=>f.id===foodId);
+  if (!modalFood) return;
+  uploadedImgData = null;
+  document.getElementById('imgPreview').style.display='none';
+  document.getElementById('imgPreview').src='';
+  document.getElementById('imgUpload').value='';
+  document.getElementById('modalFoodName').textContent = modalFood.emoji+' '+modalFood.name;
+  document.getElementById('modalFoodBase').textContent = `لكل 100غ: ${modalFood.cal100} سعرة | ب${modalFood.p}غ | ك${modalFood.c}غ | د${modalFood.f}غ`;
+  document.getElementById('portionInput').value = 100;
+  document.getElementById('modalMealSelect').value = document.getElementById('mealSelect').value;
+  updateModalPreview();
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('quickResults').classList.remove('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  modalFood = null;
+}
+
+function updateModalPreview() {
+  if (!modalFood) return;
+  const g = parseFloat(document.getElementById('portionInput').value)||0;
+  const ratio = g/100;
+  document.getElementById('mpCal').textContent = Math.round(modalFood.cal100*ratio);
+  document.getElementById('mpP').textContent = Math.round(modalFood.p*ratio)+'غ';
+  document.getElementById('mpC').textContent = Math.round(modalFood.c*ratio)+'غ';
+  document.getElementById('mpF').textContent = Math.round(modalFood.f*ratio)+'غ';
+}
+
+function handleImgUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    uploadedImgData = ev.target.result;
+    const img = document.getElementById('imgPreview');
+    img.src = uploadedImgData;
+    img.style.display='block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function addFromModal() {
+  if (!modalFood) return;
+  const g = parseFloat(document.getElementById('portionInput').value)||0;
+  if (g<=0) { showToast('أدخل كمية صحيحة','error'); return; }
+  const ratio = g/100;
+  const mealType = document.getElementById('modalMealSelect').value;
+  const data = getCurrentDayData();
+  data.meals[mealType].push({
+    name: modalFood.name + ` (${g}غ)`,
+    calories: Math.round(modalFood.cal100*ratio),
+    protein: Math.round(modalFood.p*ratio),
+    carbs: Math.round(modalFood.c*ratio),
+    fat: Math.round(modalFood.f*ratio),
+    img: uploadedImgData || null,
+    emoji: modalFood.emoji
+  });
+  saveState();
+  closeModal();
+  clearQuickSearch();
+  renderAll();
+  showToast(`✅ ${modalFood.name} — ${Math.round(modalFood.cal100*ratio)} سعرة`);
+}
+
+// ============================
+// MEALS RENDER
+// ============================
+const MEAL_LABELS = {
+  breakfast:{name:'فطور',icon:'🌅',cls:'breakfast'},
+  lunch:{name:'غداء',icon:'☀️',cls:'lunch'},
+  dinner:{name:'عشاء',icon:'🌙',cls:'dinner'},
+  snack:{name:'سناك',icon:'🍎',cls:'snack'}
+};
+
+function renderMeals() {
+  const container = document.getElementById('mealsContainer');
+  const data = getCurrentDayData();
+  const totals = getDayTotals(state.currentDay);
+  container.innerHTML = '';
+  let hasFood = false;
+
+  Object.keys(MEAL_LABELS).forEach(mk => {
+    const meta = MEAL_LABELS[mk];
+    const items = data.meals[mk]||[];
+    if (items.length>0) hasFood=true;
+    const mCal = items.reduce((s,i)=>s+(i.calories||0),0);
+
+    const card = document.createElement('div');
+    card.className='meal-card';
+    card.innerHTML=`
+      <div class="meal-header" onclick="toggleMeal('${mk}')">
+        <div class="meal-name-row">
+          <div class="meal-icon ${meta.cls}">${meta.icon}</div>
+          <div>
+            <div class="meal-name">${meta.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${items.length} عنصر</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="meal-cal">${Math.round(mCal)} سعرة</div>
+          <div style="color:var(--muted);font-size:12px" id="arrow-${mk}">▼</div>
+        </div>
+      </div>
+      <div class="meal-items" id="meal-${mk}">
+        ${items.length===0
+          ? '<div style="color:var(--muted);font-size:13px;padding:4px 0">لا يوجد طعام بعد</div>'
+          : items.map((item,idx) => `
+            <div class="food-item">
+              ${item.img
+                ? `<img class="food-thumb" src="${item.img}" alt="">`
+                : `<div class="food-thumb-placeholder">${item.emoji||'🍽️'}</div>`}
+              <div style="flex:1">
+                <div class="food-name">${item.name}</div>
+                <div class="food-detail">ب:${item.protein||0}غ | ك:${item.carbs||0}غ | د:${item.fat||0}غ</div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <button class="delete-btn" onclick="deleteFood('${mk}',${idx})">✕</button>
+                <div class="food-cal-badge">${Math.round(item.calories)} سعرة</div>
+              </div>
+            </div>
+          `).join('')}
+        <button class="add-food-btn" onclick="focusInputForMeal('${mk}')">+ إضافة طعام لـ${meta.name}</button>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  if (!hasFood) {
+    container.innerHTML+=`<div class="empty-state"><div class="empty-icon">🍽️</div><div class="empty-text">لم تسجّل وجبات بعد<br>ابحث في قاعدة البيانات أو اكتب للذكاء الاصطناعي</div></div>`;
+  } else {
+    const GOAL=2200;
+    const rem=GOAL-totals.cal;
+    const summary=document.createElement('div');
+    summary.className='summary-card';
+    summary.innerHTML=`
+      <div class="summary-title">📊 ملخص اليوم</div>
+      <div class="summary-grid">
+        <div class="summary-item full-width">
+          <div class="summary-item-val" style="color:${totals.cal>GOAL?'var(--red)':'var(--accent)'}">${totals.cal}</div>
+          <div class="summary-item-label">إجمالي السعرات</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-val" style="color:${rem>=0?'var(--green)':'var(--red)'}">${Math.abs(rem)}</div>
+          <div class="summary-item-label">${rem>=0?'متبقي من 2200':'تجاوزت الهدف'}</div>
+        </div>
+        <div class="summary-item"><div class="summary-item-val" style="color:#60a5fa">${totals.p}غ</div><div class="summary-item-label">بروتين</div></div>
+        <div class="summary-item"><div class="summary-item-val" style="color:#a78bfa">${totals.c}غ</div><div class="summary-item-label">كربوهيدرات</div></div>
+        <div class="summary-item"><div class="summary-item-val" style="color:#fbbf24">${totals.f}غ</div><div class="summary-item-label">دهون</div></div>
+      </div>
+    `;
+    container.appendChild(summary);
+  }
+}
+
+// ============================
+// HISTORY
+// ============================
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const keys = Object.keys(state.days).sort().reverse().slice(0,14);
+  if (!keys.length) {
+    list.innerHTML='<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">لا يوجد سجل بعد</div>';
+    return;
+  }
+  const GOAL=2200;
+  list.innerHTML=keys.map(key=>{
+    const t=getDayTotals(key);
+    const pct=Math.min((t.cal/GOAL)*100,100);
+    const diff=t.cal-GOAL;
+    const chip=diff>100?`<span class="chip over">+${diff} زيادة</span>`:
+               diff<-200?`<span class="chip low">${Math.abs(diff)} ناقص</span>`:
+               `<span class="chip ok">✓ ضمن الهدف</span>`;
+    return `
+      <div class="history-item" onclick="state.currentDay='${key}';switchTab('today');">
+        <div>
+          <div class="history-day">${getDayLabel(key)} <span style="color:var(--muted);font-size:11px">${key}</span></div>
+          <div class="history-bar"><div class="history-bar-fill" style="width:${pct}%;background:${t.cal>GOAL?'var(--red)':'var(--accent)'}"></div></div>
+          <div style="font-size:11px;color:var(--muted)">ب:${t.p}غ | ك:${t.c}غ | د:${t.f}غ</div>
+        </div>
+        <div style="text-align:left">
+          <div class="history-cal" style="color:${t.cal>GOAL?'var(--red)':'var(--accent)'}">${t.cal}</div>
+          <div style="font-size:10px;color:var(--muted)">سعرة</div>
+          ${chip}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ============================
+// UTILS
+// ============================
+function toggleMeal(key) {
+  const el=document.getElementById('meal-'+key);
+  const ar=document.getElementById('arrow-'+key);
+  el.classList.toggle('open');
+  ar.textContent=el.classList.contains('open')?'▲':'▼';
+}
+
+function deleteFood(mk,idx) {
+  getCurrentDayData().meals[mk].splice(idx,1);
+  saveState(); renderAll();
+  showToast('تم الحذف','error');
+}
+
+function focusInputForMeal(mk) {
+  document.getElementById('mealSelect').value=mk;
+  document.getElementById('foodInput').focus();
+}
+
+function switchTab(tab) {
+  const tabs=['today','db','history'];
+  const ids=['tabToday','tabDb','tabHistory'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',tabs[i]===tab));
+  document.querySelectorAll('.tab-content').forEach((c,i)=>c.classList.toggle('active',tabs[i]===tab));
+  if (tab==='history') renderHistory();
+  if (tab==='db') { renderCatFilters(); renderDBList('',selectedCat); }
+}
+
+function showToast(msg,type='ok') {
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast'+(type==='error'?' error':'');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ============================
+// AI ANALYSIS
+// ============================
+async function analyzeFood() {
+  const input=document.getElementById('foodInput');
+  const text=input.value.trim();
+  if (!text) return;
+  const mealType=document.getElementById('mealSelect').value;
+  const sendBtn=document.getElementById('sendBtn');
+  const loading=document.getElementById('loadingIndicator');
+  sendBtn.disabled=true;
+  loading.classList.add('visible');
+
+  const sys=`أنت محلل غذائي دقيق. المستخدم يكتب ما أكله بالعربية أو الدارجة الجزائرية.
+استخرج كل عنصر غذائي وأعطه قيمه الحقيقية بدقة.
+أعد فقط JSON صالح بدون أي نص إضافي أو backticks:
+{"items":[{"name":"اسم الطعام","calories":250,"protein":30,"carbs":10,"fat":8,"amount":"200غ","emoji":"🍗"}]}
+اسم الطعام باللغة العربية. الكميات دقيقة بناءً على قاعدة بيانات التغذية.`;
+
+  try {
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content:text}]})
+    });
+    const data=await res.json();
+    const raw=data.content.map(b=>b.text||'').join('');
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    const dayData=getCurrentDayData();
+    parsed.items.forEach(item=>{
+      dayData.meals[mealType].push({
+        name:item.name+(item.amount?` (${item.amount})`:''),
+        calories:Math.round(item.calories),
+        protein:Math.round(item.protein||0),
+        carbs:Math.round(item.carbs||0),
+        fat:Math.round(item.fat||0),
+        emoji:item.emoji||'🍽️',
+        img:null
+      });
+    });
+    saveState();
+    input.value='';
+    input.style.height='auto';
+    setTimeout(()=>{
+      const el=document.getElementById('meal-'+mealType);
+      if (el&&!el.classList.contains('open')) toggleMeal(mealType);
+    },100);
+    renderAll();
+    const tot=parsed.items.reduce((s,i)=>s+i.calories,0);
+    showToast(`✅ ${parsed.items.length} عنصر — ${Math.round(tot)} سعرة`);
+  } catch(err) {
+    showToast('حدث خطأ، حاول مرة أخرى','error');
+  } finally {
+    sendBtn.disabled=false;
+    loading.classList.remove('visible');
+  }
+}
+
+function renderAll() {
+  renderDayNav();
+  updateHeader();
+  renderMeals();
+}
+
+// Date
+function updateDate() {
+  const now=new Date();
+  const days=['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+  document.getElementById('currentDate').textContent=days[now.getDay()]+' '+now.getDate()+'/'+(now.getMonth()+1);
+}
+
+document.getElementById('foodInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();analyzeFood();}
+});
+document.getElementById('foodInput').addEventListener('input',function(){
+  this.style.height='auto';
+  this.style.height=Math.min(this.scrollHeight,100)+'px';
+});
+document.getElementById('modalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modalOverlay')) closeModal();
+});
+
+loadState(); updateDate(); renderAll();
+
+
+// PWA Install
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('pwa_dismissed')) {
+    setTimeout(() => document.getElementById('installBanner').style.display='block', 2000);
+  }
+});
+
+function installPWA() {
+  document.getElementById('installBanner').style.display='none';
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(r => {
+      if (r.outcome === 'accepted') showToast('✅ تم التثبيت بنجاح!');
+      deferredPrompt = null;
+    });
+  }
+}
+
+function dismissInstall() {
+  document.getElementById('installBanner').style.display='none';
+  localStorage.setItem('pwa_dismissed','1');
+}
+
+window.addEventListener('appinstalled', () => {
+  showToast('🎉 تم تثبيت التطبيق!');
+  document.getElementById('installBanner').style.display='none';
+});
+
+</script>
+</body>
+</html>
